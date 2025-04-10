@@ -1,57 +1,38 @@
+// By WillZek >> https://github.com/WillZek
+
 import fetch from 'node-fetch';
-import axios from 'axios';
+import fg from 'senna-fg';
 
-let handler = async (m, { conn, command, args, text, usedPrefix }) => {
-if (!text) return conn.reply(m.chat, `🎩 Ingrese el nombre de la cancion de *Soundcloud.*`, m, rcanal)
+let handler = async(m, { conn, usedPrefix, command, text }) => {
 
-await m.react('🕒');
+if (!text) return m.reply(`🍭 Ingresa Un Texto Para Buscar En Youtube\n> *Ejemplo:* ${usedPrefix + command} crow edits`);
+
 try {
-let api = await fetch(`https://apis-starlights-team.koyeb.app/starlight/soundcloud-search?text=${encodeURIComponent(text)}`);
-let json = await api.json();
-let { url } = json[0];
+let api = await (await fetch(`https://delirius-apiofc.vercel.app/search/ytsearch?q=${text}`)).json();
 
-let api2 = await fetch(`https://apis-starlights-team.koyeb.app/starlight/soundcloud?url=${url}`);
-let json2 = await api2.json();
+let results = api.data[0];
 
-let { link: dl_url, quality, image } = json2;
+let txt = `✨ *Título:* ${results.title}\n⌛ *Duración:* ${results.duration}\n📎 *Link:* ${results.url}\n📆 *Publicado:* ${results.publishedAt}`;
 
-let audio = await getBuffer(dl_url);
+let img = results.image;
 
-let txt = `*\`- S O U N C L O U D - M U S I C -\`*\n\n`;
-    txt += `        ✩  *Título* : ${json[0].title}\n`;
-    txt += `        ✩  *Calidad* : ${quality}\n`;
-    txt += `        ✩  *Url* : ${url}\n\n`;
-    txt += `> 🍭 *${dev}*`
+conn.sendMessage(m.chat, { image: { url: img }, caption: txt }, { quoted: m });
 
-await conn.sendFile(m.chat, image, 'thumbnail.jpg', txt, m, null, rcanal);
-await conn.sendMessage(m.chat, { audio: audio, fileName: `${json[0].title}.mp3`, mimetype: 'audio/mpeg' }, { quoted: m })
+/* let api2 = await(await fetch(`https://api.neoxr.eu/api/youtube?url=${results.url}&type=audio&quality=128kbps&apikey=GataDios`)).json();
 
-await m.react('✅');
-} catch {
-m.reply('No Se Encontraron Resultados Para Tu Búsqueda En Soundcloud');
-await m.react('✖️');
-}}
+if (!api2?.data.url) return m.reply('No Se  Encontraron Resultados');
+*/
 
-handler.help = ['soundcloud *<búsqueda>*']
-handler.tags = ['descargas']
-handler.command = ['soundcloud', 'sound', 'play']
+let api2 = await(await fetch(`https://api.vreden.my.id/api/ytmp3?url=${results.url}`)).json();
+
+conn.sendMessage(m.chat, { audio: { url: api2.result.download.url }, mimetype: 'audio/mpeg' }, { quoted: m });
+
+} catch (e) {
+m.reply(`*No Encontramos Resultados Para Tu Búsqueda*`);
+m.react('✖️');
+  }
+}
+
+handler.command = ['play', 'paudio'];
 
 export default handler
-
-const getBuffer = async (url, options) => {
-try {
-const res = await axios({
-method: 'get',
-url,
-headers: {
-'DNT': 1,
-'Upgrade-Insecure-Request': 1,
-},
-...options,
-responseType: 'arraybuffer',
-});
-return res.data;
-} catch (e) {
-console.log(`Error : ${e}`);
-}
-};
