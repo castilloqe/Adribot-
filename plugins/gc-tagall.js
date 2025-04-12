@@ -3,6 +3,8 @@ import fetch from 'node-fetch';
 import PhoneNumber from 'awesome-phonenumber';
 
 const handler = async (m, { participants, args }) => {
+
+try {
   const pesan = args.join` `;
   const oi = `*» INFO :* ${pesan}`;
   let mensajes = `*!  MENCION GENERAL  !*\n  *PARA ${participants.length} MIEMBROS* 🗣️\n\n ${oi}\n\n╭  ┄ 𝅄  ۪꒰ \`⡞᪲=͟͟͞🄲ꭈׁׅo͓̽ᨰׁׅʙo͓̽tׁׅ ≼᳞ׄ\` ꒱  ۟  𝅄 ┄\n`;
@@ -20,7 +22,10 @@ const handler = async (m, { participants, args }) => {
     mensajes += `╰⸼ ┄ ┄ ┄ ─  ꒰  ׅ୭ *${vs}* ୧ ׅ ꒱  ┄  ─ ┄ ⸼`;
 
   conn.sendMessage(m.chat, { text: mensajes, mentions: participants.map((a) => a.id) });
-};
+
+} catch (e) { 
+m.reply(`Error: ${e.message}`);
+}};
 
 handler.help = ['todos *<mensaje opcional>*'];
 handler.tags = ['grupo'];
