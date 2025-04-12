@@ -26,6 +26,7 @@ handler.help = ['todos *<mensaje opcional>*'];
 handler.tags = ['grupo'];
 handler.command = /^(tagall|invocar|marcar|todos|invocación)$/i;
 handler.admin = true;
+handler.botAdmin = true;
 handler.group = true;
 
 export default handler;
