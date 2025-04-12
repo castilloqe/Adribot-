@@ -1,5 +1,5 @@
 {
-"name": "CrowBot-ST",
+"name": "SonicBot-MF",
 "version": "2.1.0",
 "description": "Simple WhatsApp Bot Multi Device",
 "main": "starcore.js",
@@ -44,6 +44,7 @@
 "fluid-spotify.js": "latest",
 "axios": "^1.1.2",
 "acrcloud": "latest",
+"senna-fg": "0.0.9",
 "google-play-scraper": "latest",
 "form-data": "^4.0.0",
 "cfonts": "^3.3.0",
