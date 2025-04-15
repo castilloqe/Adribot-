@@ -10,11 +10,11 @@ let moon = args[0];
 let force = await (await fetch (`https://moonforce-apiofc.vercel.app/api/download/tiktok?url=${moon}`)).json();
 
 let txt = `*Titulo:* force.results.title`
-let img = force.results.thumbnail;
+let vid = force.results.video.no_watermark;
 
 conn.sendFile(m.chat, img, 'MoonForce.jpg', txt, null, rcanal);
 
-conn.sendMessage(m.chat, { audio: { url: aud }, mimetype: 'audio/mpeg' }, { quoted: m });
+conn.sendMessage(m.chat, { video: { url: vid }, mimetype: 'video/mp4' }, { quoted: m });
 }
 
 MF.command = ['test'];
