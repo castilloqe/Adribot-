@@ -6,7 +6,7 @@ let handler = async (m, { conn, usedPrefix, command, isAdmin, isBotAdmin }) => {
 
     let user;
     if (m.quoted || !m.mentionedJid[0]) {
-        user = m.quoted.sender;
+        user = m.quoted.sender || !m.mentionedJid[0];
     } else {
         return conn.reply(m.chat, '🍭 Responde al mensaje del usuario que quieres mutear.', m);
     }
