@@ -14,8 +14,8 @@ let { title, video, thumbnail } = force.result;
 let txt = `*Título:* ${title}`;
 let vid = video.no_watermark;
 
-await conn.sendFile(m.chat, thumbnail, 'thumbnail.jpg', txt, m);
-await conn.sendMessage(m.chat, { video: { url: vid }, mimetype: 'video/mp4' }, { quoted: m });
+// await conn.sendFile(m.chat, thumbnail, 'thumbnail.jpg', txt, m);
+await conn.sendMessage(m.chat, { video: { url: vid }, caption: txt, mimetype: 'video/mp4' }, { quoted: m });
 
 } catch (e) {
 m.reply(`Error: ${e.message}`);
