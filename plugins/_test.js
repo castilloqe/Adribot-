@@ -8,8 +8,8 @@ try {
 let moon = args[0];
 let force = await (await fetch(`https://moonforce-apiofc.vercel.app/api/download/tiktok?url=${moon}`)).json();
 
-let { title, video } = force.result;
-let txt = `*Título:* ${title}`;
+let { title, video, author, duration } = force.result;
+let txt = `*Título:* ${title}\n*Duración:* ${duration}\n*Autor:* ${author.username}`;
 let vid = video.no_watermark;
 
 await conn.sendMessage(m.chat, { video: { url: vid }, caption: txt, mimetype: 'video/mp4' }, { quoted: m });
