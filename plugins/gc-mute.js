@@ -1,4 +1,4 @@
- let mutedUsers = new Set();
+let mutedUsers = new Set();
 
 let handler = async (m, { conn, usedPrefix, command, isAdmin, isBotAdmin }) => {
     if (!isBotAdmin) return conn.reply(m.chat, '🍭 El bot necesita ser administrador.', m);
