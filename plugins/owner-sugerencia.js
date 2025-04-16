@@ -11,7 +11,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
     const groupChatId = '120363346831728441@g.us';
     await conn.reply(groupChatId, m.quoted ? teks + m.quoted.text : teks, m, { mentions: conn.parseMention(teks) })
 
-    m.reply('🌠 La sugerencia se envió al Staff De CrowBot.')
+    m.reply('🌠 La sugerencia se envió al Staff De Sonicbot.')
 }
 handler.help = ['sugerencia']
 handler.tags = ['owner']
