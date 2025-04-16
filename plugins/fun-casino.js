@@ -28,10 +28,10 @@ if (Aku > Kamu) {
 conn.reply(m.chat, '`🌸 Veamos que numeros tienen!`\n\n'+ `➠ *SonicBot* : ${Aku}\n➠ *${username}* : ${Kamu}\n\n> ${username}, *PERDISTE* ${formatNumber(count)} 🌟 Estrellas`.trim(), m, rcanal)
 } else if (Aku < Kamu) {
 user.estrellas += count * 2
-conn.reply(m.chat, '`🌸 Veamos que numeros tienen!`\n\n'+ `➠ *CrowBot* : ${Aku}\n➠ *${username}* : ${Kamu}\n\n> ${username}, *GANASTE* ${formatNumber(count * 2)} 🌟 Estrellas`.trim(), m, rcanal)
+conn.reply(m.chat, '`🌸 Veamos que numeros tienen!`\n\n'+ `➠ *SonicBot* : ${Aku}\n➠ *${username}* : ${Kamu}\n\n> ${username}, *GANASTE* ${formatNumber(count * 2)} 🌟 Estrellas`.trim(), m, rcanal)
 } else {
 user.estrellas += count * 1
-conn.reply(m.chat, '`🌸 Veamos que numeros tienen!`\n\n'+ `➠ *CrowBot-ST* : ${Aku}\n➠ *${username}* : ${Kamu}\n\n> ${username} obtienes ${formatNumber(count * 1)} 🌟 Estrellas.`.trim(), m, rcanal)}
+conn.reply(m.chat, '`🌸 Veamos que numeros tienen!`\n\n'+ `➠ *SonicBot-MF* : ${Aku}\n➠ *${username}* : ${Kamu}\n\n> ${username} obtienes ${formatNumber(count * 1)} 🌟 Estrellas.`.trim(), m, rcanal)}
 } else conn.reply(m.chat, `No tienes *${formatNumber(count)} 🌟 Estrellas* para apostar!`.trim(), m, rcanal)}
 
 handler.help = ['apostar *<cantidad>*']
