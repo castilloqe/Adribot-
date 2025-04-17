@@ -8,7 +8,7 @@ let handler = async (m, { conn, text, usedPrefix, command }) => {
 🛡️ Han sugerido un comando:
 > ${text}`
     
-    const groupChatId = '120363346831728441@g.us';
+    const groupChatId = '120363395340241509@g.us';
     await conn.reply(groupChatId, m.quoted ? teks + m.quoted.text : teks, m, { mentions: conn.parseMention(teks) })
 
     m.reply('🌠 La sugerencia se envió al Staff De Sonicbot.')
