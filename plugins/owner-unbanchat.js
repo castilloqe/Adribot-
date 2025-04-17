@@ -8,8 +8,8 @@ await conn.reply(m.chat, `${emojis} *SonicBot ya fué desbaneado en este chat*`,
 handler.help = ['unbanchat'];
 handler.tags = ['owner'];
 handler.command = ['unbanchat','desbanearchat','desbanchat']
-handler.prems = true 
-handler.botAdmin = false
+handler.owner = true 
+handler.admin = true
 handler.group = false
 
 export default handler
