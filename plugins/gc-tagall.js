@@ -3,11 +3,9 @@ import fetch from 'node-fetch';
 import PhoneNumber from 'awesome-phonenumber';
 
 const handler = async (m, { participants, args }) => {
-
-try {
   const pesan = args.join` `;
   const oi = `*» INFO :* ${pesan}`;
-  let mensajes = `*!  MENCION GENERAL  !*\n  *PARA ${participants.length} MIEMBROS* 🗣️\n\n ${oi}\n\n╭  ┄ 𝅄  ۪꒰ \`⡞᪲=͟͟͞SonicBot≼᳞ׄ\` ꒱  ۟  𝅄 ┄\n`;
+  let mensajes = `*!  MENCION GENERAL  !*\n  *PARA ${participants.length} MIEMBROS* 🗣️\n\n ${oi}\n\n╭  ┄ 𝅄  ۪꒰ \`⡞᪲=͟͟͞🄲ꭈׁׅo͓̽ᨰׁׅʙo͓̽tׁׅ ≼᳞ׄ\` ꒱  ۟  𝅄 ┄\n`;
 
   for (const mem of participants) {
     let numero = PhoneNumber('+' + mem.id.replace('@s.whatsapp.net', '')).getNumber('international');
@@ -22,16 +20,12 @@ try {
     mensajes += `╰⸼ ┄ ┄ ┄ ─  ꒰  ׅ୭ *${vs}* ୧ ׅ ꒱  ┄  ─ ┄ ⸼`;
 
   conn.sendMessage(m.chat, { text: mensajes, mentions: participants.map((a) => a.id) });
-
-} catch (e) { 
-m.reply(`Error: ${e.message}`);
-}};
+};
 
 handler.help = ['todos *<mensaje opcional>*'];
 handler.tags = ['grupo'];
 handler.command = /^(tagall|invocar|marcar|todos|invocación)$/i;
 handler.admin = true;
-handler.botAdmin = true;
 handler.group = true;
 
 export default handler;
