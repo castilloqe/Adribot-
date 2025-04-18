@@ -18,6 +18,7 @@ let handler = async (m, { conn, args, command }) => {
 
         return m.reply(`✅ Mensaje enviado a ${numero} de manera anónima:\n📝 *${mensaje}*`);
     } catch (error) {
+m.reply(`${error.message}`);
         console.error("Error al enviar el mensaje:", error);
         return m.reply("❌ Ocurrió un error al intentar enviar el mensaje. Verifica el número e inténtalo nuevamente.");
     }
