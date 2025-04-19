@@ -14,7 +14,7 @@ let handler = async (m, { conn, usedPrefix, command, isAdmin, isBotAdmin }) => {
     const ownerBot = global.owner[0][0] + '@s.whatsapp.net';
     
 if (user === ownerBot) {
-        return conn.reply(m.chat, '🍭 No puedo eliminar al propietario del bot.', m);
+        return conn.reply(m.chat, '🍭 No puedo mutar al propietario del bot.', m);
     }
 
     if (command === "mute") {
