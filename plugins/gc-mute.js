@@ -5,10 +5,7 @@ let handler = async (m, { conn, usedPrefix, command, isAdmin, isBotAdmin }) => {
     if (!isAdmin) return conn.reply(m.chat, '🍭 Solo los administradores pueden usar este comando.', m);
 
     let user;
-    let who;
-    if (m.isGroup) who = m.mentionedJid[0];
-    else who = m.chat;
-    if (!who && !m.quoted) {
+    if (m.quoted) {
         user = m.quoted.sender;
     } else {
         return conn.reply(m.chat, '🍭 Responde al mensaje del usuario que quieres mutear.', m);
