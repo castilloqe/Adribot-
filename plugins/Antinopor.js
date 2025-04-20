@@ -1,16 +1,16 @@
 import fs from "fs";
 import path from "path";
 
-const handler = async (m: msg, { conn, args }) => {
-  const chatId = msg.key.remoteJid;
-  const senderId = msg.key.participant || msg.key.remoteJid;
-  const senderClean = senderId.replace(/[^0-9]/g, "");
+const handler = async (m, { conn, args }) => {
+  // const chatId = m.key.remoteJid;
+  // const senderId = m.key.participant || m.key.remoteJid;
+  const senderClean = m.sender.replace(/[^0-9]/g, "");
 
   // Solo funciona en grupos
-  if (!chatId.endsWith("@g.us")) {
-    return await conn.sendMessage(chatId, {
+  if (!m.chat.endsWith("@g.us")) {
+    return await conn.sendMessage(m.chat, {
       text: "❌ Este comando solo funciona en grupos."
-    }, { quoted: msg });
+    }, { quoted: m });
   }
 
   // Verificar si es admin del grupo o owner del bot
