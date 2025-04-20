@@ -7,7 +7,7 @@ const handler = async (m, { conn, args, groupMetadata, participants, isGroup }) 
   const senderClean = m.sender.replace(/[^0-9]/g, "");
 
   // Solo funciona en grupos
-  if (!m.chat.endsWith("@g.us")) {
+  if (!isGroup) {
     return await conn.sendMessage(m.chat, {
       text: "❌ Este comando solo funciona en grupos."
     }, { quoted: m });
