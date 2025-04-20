@@ -37,23 +37,26 @@ const handler = async (m, { conn, args, groupMetadata, participants, isGroup }) 
       react: { text: "⏳", key: m.key }
     });
 
-    const filePath = path.resolve("./activos.json");
+/*    const filePath = path.resolve("./activos.json");
     let data = fs.existsSync(filePath) ? JSON.parse(fs.readFileSync(filePath)) : {};
-    if (!data.antiporno) data.antiporno = {};
+*/
+let data = global.db.data.chats[m.chat];
+
+// if (!data.antiporno) data.antiporno = {};
 
     if (args[0] === "on") {
-      data.antiporno[m.chat] = true;
+      data.antiporno = true;
       await conn.sendMessage(m.chat, {
         text: "✅ Antiporno *activado* en este grupo."
       }, { quoted: m });
     } else {
-      delete data.antiporno[m.chat];
+      delete data.antiporno;
       await conn.sendMessage(m.chat, {
         text: "✅ Antiporno *desactivado* en este grupo."
       }, { quoted: m });
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    // fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 
     // Reacción final
     await conn.sendMessage(m.chat, {
