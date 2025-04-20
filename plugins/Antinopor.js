@@ -42,32 +42,32 @@ const handler = async (m, { conn, args }) => {
     if (!data.antiporno) data.antiporno = {};
 
     if (args[0] === "on") {
-      data.antiporno[chatId] = true;
-      await conn.sendMessage(chatId, {
+      data.antiporno[m.chat] = true;
+      await conn.sendMessage(m.chat, {
         text: "✅ Antiporno *activado* en este grupo."
-      }, { quoted: msg });
+      }, { quoted: m });
     } else {
-      delete data.antiporno[chatId];
-      await conn.sendMessage(chatId, {
+      delete data.antiporno[m.chat];
+      await conn.sendMessage(m.chat, {
         text: "✅ Antiporno *desactivado* en este grupo."
-      }, { quoted: msg });
+      }, { quoted: m });
     }
 
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 
     // Reacción final
-    await conn.sendMessage(chatId, {
-      react: { text: "✅", key: msg.key }
+    await conn.sendMessage(m.chat, {
+      react: { text: "✅", key: m.key }
     });
 
   } catch (err) {
     console.error("❌ Error en comando antiporno:", err);
-    await conn.sendMessage(chatId, {
+    await conn.sendMessage(m.chat, {
       text: "❌ Ocurrió un error al ejecutar el comando."
-    }, { quoted: msg });
+    }, { quoted: m });
 
-    await conn.sendMessage(chatId, {
-      react: { text: "❌", key: msg.key }
+    await conn.sendMessage(m.chat, {
+      react: { text: "❌", key: m.key }
     });
   }
 };
