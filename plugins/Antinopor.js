@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const handler = async (msg, { conn, args }) => {
+const handler = async (m: msg, { conn, args }) => {
   const chatId = msg.key.remoteJid;
   const senderId = msg.key.participant || msg.key.remoteJid;
   const senderClean = senderId.replace(/[^0-9]/g, "");
