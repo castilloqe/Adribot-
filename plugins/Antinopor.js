@@ -73,4 +73,5 @@ const handler = async (msg, { conn, args }) => {
 };
 
 handler.command = ["antiporno"];
-module.exports = handler;
+
+export default handler;
