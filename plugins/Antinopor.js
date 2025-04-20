@@ -1,13 +1,13 @@
 import fs from "fs";
 import path from "path";
 
-const handler = async (m, { conn, args, groupMetadata, participants, isGroup }) => {
+const handler = async (m, { conn, args, groupMetadata, participants }) => {
   // const chatId = m.key.remoteJid;
    const sender = m.sender || m.key.participant || m.key.remoteJid;
   const senderClean = sender.replace(/[^0-9]/g, "");
 
   // Solo funciona en grupos
-  if (!isGroup) {
+  if (!m.isGroup) {
     return await conn.sendMessage(m.chat, {
       text: "❌ Este comando solo funciona en grupos."
     }, { quoted: m });
