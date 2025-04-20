@@ -15,26 +15,26 @@ const handler = async (m, { conn, args }) => {
 
   // Verificar si es admin del grupo o owner del bot
   try {
-    const metadata = await conn.groupMetadata(chatId);
+    const metadata = await conn.groupMetadata(m.chat);
     const participant = metadata.participants.find(p => p.id.includes(senderClean));
     const isAdmin = participant?.admin === "admin" || participant?.admin === "superadmin";
     const isOwner = global.owner.some(o => o[0] === senderClean);
 
     if (!isAdmin && !isOwner) {
-      return conn.sendMessage(chatId, {
+      return conn.sendMessage(m.chat, {
         text: "❌ Solo los administradores o el owner pueden usar este comando."
-      }, { quoted: msg });
+      }, { quoted: m });
     }
 
     if (!args[0] || !["on", "off"].includes(args[0])) {
-      return conn.sendMessage(chatId, {
+      return conn.sendMessage(m.chat, {
         text: "✳️ Usa el comando así:\n\n📌 *antiporno on*  (activar)\n📌 *antiporno off* (desactivar)"
-      }, { quoted: msg });
+      }, { quoted: m });
     }
 
     // Reacción ⏳
-    await conn.sendMessage(chatId, {
-      react: { text: "⏳", key: msg.key }
+    await conn.sendMessage(m.chat, {
+      react: { text: "⏳", key: m.key }
     });
 
     const filePath = path.resolve("./activos.json");
