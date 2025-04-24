@@ -1,64 +1,122 @@
  
-import FormData from "form-data"
-import Jimp from "jimp"
-import uploadImage from '../lib/uploadImage.js'
-import fetch from "node-fetch"
+const fs = require('fs');
+const path = require('path');
+const { downloadContentFromMessage } = require('@whiskeysockets/baileys');
+const FormData = require('form-data');
+const axios = require('axios');
 
-const handler = async (m, { conn, usedPrefix, command }) => {
-  try {
-    let q = m.quoted ? m.quoted : m
-    let mime = (q.msg || q).mimetype || q.mediaType || ""
+const remini = async (imageBuffer, operation = "enhance") => {
+    const validOperations = ["enhance", "recolor", "dehaze"];
+    operation = validOperations.includes(operation) ? operation : "enhance";
 
-    if (!mime) {
-      return m.reply(`❀ Por favor, envie una imagen o responda a la imagen utilizando el comando.`)
+    const form = new FormData();
+    form.append('image', imageBuffer, {
+        filename: 'image_to_enhance.jpg',
+        contentType: 'image/jpeg'
+    });
+    form.append('model_version', '1');
+
+    try {
+        const { data } = await axios({
+            method: 'post',
+            url: `https://inferenceengine.vyro.ai/${operation}.vyro`,
+            data: form,
+            headers: {
+                ...form.getHeaders(),
+                'User-Agent': 'okhttp/4.9.3',
+                'Accept-Encoding': 'gzip'
+            },
+            responseType: 'arraybuffer',
+            timeout: 30000
+        });
+
+        return data;
+    } catch (error) {
+        console.error('Error en API remini:', error.message);
+        throw new Error('No se pudo procesar la imagen. Inténtalo de nuevo más tarde.');
     }
+};
 
-    if (!/image\/(jpe?g|png)/.test(mime)) {
-      return m.reply(`✧ El formato del archivo (${mime}) no es compatible, envía o responde a una imagen.`)
+const handler = async (msg, { conn }) => {
+    try {
+        // Verificar mensaje citado
+        const quoted = msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        if (!quoted) {
+            return await conn.sendMessage(msg.key.remoteJid, {
+                text: "🚫 *Debes responder a una imagen con el comando* `.hd`"
+            }, { quoted: msg });
+        }
+
+        // Verificar tipo de archivo
+        const mime = quoted.imageMessage?.mimetype || "";
+        if (!/image\/(jpe?g|png)/.test(mime)) {
+            return await conn.sendMessage(msg.key.remoteJid, {
+                text: "⚠️ *Formato no soportado. Solo se permiten imágenes JPG/PNG*"
+            }, { quoted: msg });
+        }
+
+        // Reacción de procesamiento
+        await conn.sendMessage(msg.key.remoteJid, {
+            react: { text: "🔄", key: msg.key }
+        });
+
+        // Descargar imagen
+        const mediaStream = await downloadContentFromMessage(quoted.imageMessage, "image");
+        let buffer = Buffer.alloc(0);
+
+        for await (const chunk of mediaStream) {
+            buffer = Buffer.concat([buffer, chunk]);
+        }
+
+        if (buffer.length === 0) {
+            throw new Error("La imagen está vacía o no se pudo descargar");
+        }
+
+        // Crear directorio temporal si no existe
+        const tmpDir = path.join(__dirname, '../tmp');
+        if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+
+        // Procesar imagen
+        const startTime = Date.now();
+        const enhancedImage = await remini(buffer);
+        console.log(`Procesamiento completado en ${(Date.now() - startTime)/1000} segundos`);
+
+        // Enviar resultado
+        await conn.sendMessage(msg.key.remoteJid, {
+            image: enhancedImage,
+            caption: "🖼️ *Imagen mejorada con tecnología HD*\n\n💡 *Sugerencia:* Para mejores resultados use fotos con buena iluminación\n\n🤖 *Azura Ultra 2.0*"
+        }, { quoted: msg });
+
+        // Reacción de éxito
+        await conn.sendMessage(msg.key.remoteJid, {
+            react: { text: "✅", key: msg.key }
+        });
+
+    } catch (error) {
+        console.error("Error en comando hd:", error);
+
+        let errorMessage = "❌ *Error al procesar la imagen*";
+        if (error.message.includes("timeout")) {
+            errorMessage = "⌛ *El servidor tardó demasiado en responder. Intenta con una imagen más pequeña*";
+        }
+
+        await conn.sendMessage(msg.key.remoteJid, {
+            text: errorMessage
+        }, { quoted: msg });
+
+        await conn.sendMessage(msg.key.remoteJid, {
+            react: { text: "❌", key: msg.key }
+        });
     }
+};
 
-    conn.reply(m.chat, '✧ Mejorando la calidad de la imagen....', m)
-    let imgBuffer = await q.download()
-    let image = await Jimp.read(imgBuffer)
-    image.resize(800, Jimp.AUTO)
-    let processedImageBuffer = await image.getBufferAsync(Jimp.MIME_JPEG)
+// Configuración del plugin
+handler.command = ['hd', 'enhance', 'remini'];
+handler.tags = ['tools'];
+handler.help = [
+    'hd <responde a imagen> - Mejora la calidad de la imagen',
+    'enhance <responde a imagen> - Alternativa para mejorar imágenes',
+    'remini <responde a imagen> - Usa IA para mejorar fotos'
+];
 
-    let imageUrl = await uploadImage(processedImageBuffer)
-    let enhancedImageUrl = await enhanceImage(imageUrl)
-
-    await conn.sendFile(m.chat, enhancedImageUrl, "out.png", "", fkontak)
-  } catch (error) {
-    return conn.reply(m.chat, `⚠︎ Ocurrió un error: ${error.message}`, m)
-  }
-}
-
-handler.help = ["hd"]
-handler.tags = ["tools"]
-handler.command = ["remini", "hd", "enhance"]
-handler.group = true
-
-export default handler
-
-async function enhanceImage(imageUrl) {
-  try {
-    const response = await fetch(
-      `https://api.siputzx.my.id/api/iloveimg/upscale?image=${encodeURIComponent(imageUrl)}`,
-      {
-        method: "GET"
-      }
-    )
-
-    if (!response.ok) {
-      throw new Error(
-        `Error al procesar la imagen: ${response.status} - ${response.statusText}`
-      )
-    }
-
-    const result = await response.buffer()
-    return result
-  } catch (error) {
-    throw new Error(
-      `Error al mejorar la calidad de la imagen: ${error.message}`
-    )
-  }
-}
+module.exports = handler;
