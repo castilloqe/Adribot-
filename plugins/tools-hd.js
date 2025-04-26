@@ -1,39 +1,36 @@
- let handler = async (m, { conn }) => {
-      if (!m.quoted) return m.reply(`🌙 Responde a una imagen.`);
-      const imageBuffer = await m.quoted.download();
-      m.react("🕑");
-      try {
-         const r = await Upscale(imageBuffer);
-         if (!r) return m.reply("Error al mejorar la imagen.");
+ import axios from "axios";
+import uploadImage from "../lib/uploadImage.js";
 
-         await conn.sendFile(m.chat, r, 'image.jpg', '', m);
-         m.react("✅");
-      } catch (e) {
-         console.error(e);
-         m.reply("Ocurrió un error al procesar la imagen.");
-      }
-   }
+const handler = async (m, { conn }) => {
+  try {
+    const q = m.quoted || m;
+    const mime = (q.msg || q).mimetype || q.mediaType || "";
+    if (!mime.startsWith("image/")) {
+      return conn.reply(m.chat, " Responde a una *Imagen.*", m);
+    }
 
-handler.command = ["hd", "hdr", "remini"]
-handler.help = ["remini"];
-handler.tags = ["tools"];
+    await m.react("🕓");
+    const imgBuffer = await q.download?.();
+    const urlSubida = await uploadImage(imgBuffer);
+    const upscaledBuffer = await getUpscaledImage(urlSubida);
 
-export default handler
+    await conn.sendFile(m.chat, upscaledBuffer, "upscaled.jpg", "*Aquí tienes tu imagen mejorada ฅ^•ﻌ•^ฅ*", m);
+    await m.react("✅");
+  } catch (e) {
+    console.error("Error:", e);
+    await m.react("✖️");
+    conn.reply(m.chat, "Ocurrió un error al mejorar la imagen.", m);
+  }
+};
 
-async function Upscale(imageBuffer) {
-   try {
-      const response = await fetch("https://lexica.qewertyy.dev/upscale", {
-         body: JSON.stringify({
-            image_data: imageBuffer.toString("base64"),
-            format: "binary",
-         }),
-         headers: { "Content-Type": "application/json" },
-         method: "POST",
-      });
-      if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-      return Buffer.from(await response.arrayBuffer());
-   } catch (e) {
-      console.error("Error en Upscale():", e);
-      return null;
-   }
+handler.help = ["hd"]  
+handler.tags = ["tools"]  
+handler.command = ["remini", "hd", "enhance"]  
+handler.register = true
+export default handler;
+
+async function getUpscaledImage(imageUrl) {
+  const apiUrl = `https://api.siputzx.my.id/api/iloveimg/upscale?image=${encodeURIComponent(imageUrl)}`;
+  const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
+  return Buffer.from(response.data);
 }
