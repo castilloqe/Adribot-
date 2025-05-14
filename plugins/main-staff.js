@@ -4,7 +4,7 @@ let staff = `🚩 *EQUIPO DE AYUDANTES*
 🪐 *Versión:* ${global.vs}
 
 •
-🎩 *Rol:* Developer
+🎩 *Propietario del bot:* 
 💛 *Número:*
 
 • 
