@@ -5,7 +5,7 @@ let staff = `🚩 *EQUIPO DE AYUDANTES*
 
 •
 🎩 *Propietario del bot:* 
-💛 *Número:*
+💛 *Número:* Wa.me/2731590195
 
 • 
 🍭 *Rol* Developer
