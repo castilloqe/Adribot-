@@ -1,35 +1,46 @@
-import translate from '@vitalets/google-translate-api';
-import axios from 'axios';
-import fetch from 'node-fetch';
+import translate from '@vitalets/google-translate-api'
+import fetch from 'node-fetch'
 
-const handler = async (m, {conn, text, command, args, usedPrefix}) => {
+var handler = async (m, { text, command, args, usedPrefix }) => {
 
-if (!text) conn.reply(m.chat, '✧ Te faltó el texto para hablar con la Bot', m, fake);
+if (!text) return conn.reply(m.chat, `🚀 *Ingrese un texto para hablar conmigo*\n\nEjemplo, !${command} Hola`, m, fake, )
+m.react('🗣️')
+
 try {
-// await m.react(emojis);
-const resSimi = await simitalk(text);
-conn.sendMessage(m.chat, { text: resSimi.resultado.simsimi }, { quoted: m });
-} catch {
-return conn.reply(m.chat, '❀ Ocurrió un error', m, fake);
-}};
 
-handler.help = ['simi', 'bot'];
-handler.tags = ['fun'];
-handler.register = true;
-handler.command = ['simi', 'bot', 'alexa', 'yaemori', 'mini', 'ai'];
-export default handler;
+let api = await fetch('https://api.simsimi.net/v2/?text=' + text + '&lc=es')
+let resSimi = await api.json()
 
-async function simitalk(ask, apikeyyy = "iJ6FxuA9vxlvz5cKQCt3", language = "es") {
-if (!ask) return { status: false, resultado: { msg: "Debes ingresar un texto para hablar con simsimi." }};
-try {
-const response1 = await axios.get(`https://deliriusapi-official.vercel.app/tools/simi?text=${encodeURIComponent(ask)}`);
-const trad1 = await translate(`${response1.data.data.message}`, {to: language, autoCorrect: true});
-if (trad1.text == 'indefinida' || response1 == '' || !response1.data) trad1 = XD // Se usa "XD" para causar error y usar otra opción.  
-return { status: true, resultado: { simsimi: trad1.text }};        
+conn.reply(m.chat, resSimi.success, m, fake, )
+
 } catch {
 try {
-const response2 = await axios.get(`https://anbusec.xyz/api/v1/simitalk?apikey=${apikeyyy}&ask=${ask}&lc=${language}`);
-return { status: true, resultado: { simsimi: response2.data.message }};       
-} catch (error2) {
-return { status: false, resultado: { msg: "Todas las API's fallarón. Inténtalo de nuevo más tarde.", error: error2.message }};
-}}}
+if (text.includes('Hola')) text = text.replace('Hola', 'Hello')
+if (text.includes('hola')) text = text.replace('hola', 'Hello')
+if (text.includes('HOLA')) text = text.replace('HOLA', 'HELLO')    
+let reis = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=' + text)
+let resu = await reis.json()  
+let nama = m.pushName || '1'
+let api = await fetch('http://api.brainshop.ai/get?bid=153868&key=rcKonOgrUFmn5usX&uid=' + nama + '&msg=' + resu[0][0][0])
+let res = await api.json()
+let reis2 = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=es&dt=t&q=' + res.cnt)
+let resu2 = await reis2.json()    
+conn.reply(m.chat, resu2[0][0][0], m, fake, )
+} catch {  
+let reisss = await fetch('https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=id&dt=t&q=' + text)
+let resuuu = await reisss.json()      
+let res222 = await fetch(`https://violetics.pw/api/utility/simsimi?apikey=beta&text=${resuuu[0][0][0]}`)  
+let json222 = await res222.json()
+let resulttt = json222.result
+let lolll = await translate(`${resulttt}`, { to: 'es', autoCorrect: true })    
+conn.reply(m.chat, lolll.text, m, fake, )
+}}
+
+}
+handler.help = ['simi']
+handler.tags = ['tools']
+handler.command = /^((sim)?simi|bot|alexa|cortana|curio(sity)?)$/i
+
+handler.register = true
+
+export default handler
