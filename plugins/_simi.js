@@ -4,27 +4,25 @@ import fetch from 'node-fetch';
 
 const handler = async (m, {conn, text, command, args, usedPrefix}) => {
 
-if (!text) conn.reply(m.chat, `${emoji} Te faltó el texto para hablar con la *Bot*`, m);
+if (!text) conn.reply(m.chat, '✧ Te faltó el texto para hablar con la Bot', m, fake);
 try {
-// await m.react(emojis)
+// await m.react(emojis);
 const resSimi = await simitalk(text);
 conn.sendMessage(m.chat, { text: resSimi.resultado.simsimi }, { quoted: m });
 } catch {
-throw `${msm} Ocurrió un error.`;
+return conn.reply(m.chat, '❀ Ocurrió un error', m, fake);
 }};
 
 handler.help = ['simi', 'bot'];
 handler.tags = ['fun'];
-handler.group = true;
-handler.register = true
-handler.command = ['simi']
-
+handler.register = true;
+handler.command = ['simi', 'bot', 'alexa', 'yaemori', 'mini', 'ai'];
 export default handler;
 
 async function simitalk(ask, apikeyyy = "iJ6FxuA9vxlvz5cKQCt3", language = "es") {
 if (!ask) return { status: false, resultado: { msg: "Debes ingresar un texto para hablar con simsimi." }};
 try {
-const response1 = await axios.get(`https://delirius-apiofc.vercel.app/tools/simi?text=${encodeURIComponent(ask)}`);
+const response1 = await axios.get(`https://deliriusapi-official.vercel.app/tools/simi?text=${encodeURIComponent(ask)}`);
 const trad1 = await translate(`${response1.data.data.message}`, {to: language, autoCorrect: true});
 if (trad1.text == 'indefinida' || response1 == '' || !response1.data) trad1 = XD // Se usa "XD" para causar error y usar otra opción.  
 return { status: true, resultado: { simsimi: trad1.text }};        
