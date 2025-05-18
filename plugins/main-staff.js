@@ -9,7 +9,7 @@ let staff = `🚩 *EQUIPO DE AYUDANTES*
 
 • 
 🍭 *Rol* Developer
-💛 *Numero:*
+💛 *Numero:* +505 5786 5603
 
 • 
 🎩 *Rol:* Developer
@@ -39,7 +39,7 @@ let staff = `🚩 *EQUIPO DE AYUDANTES*
 • 
 🍭 *Rol:* Mod
 💛 *Numero:*`
-await conn.sendFile(m.chat, './media/menus/Menu.jpg', 'brook.jpg', staff.trim(), fkontak, true, {
+await conn.sendFile(m.chat, 'https://raw.githubusercontent.com/WillZek/Storage-CB/main/images/21396e078a24.jpg', 'brook.jpg', staff.trim(), fkontak, true, {
 contextInfo: {
 'forwardingScore': 200,
 'isForwarded': false,
