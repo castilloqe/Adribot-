@@ -4,7 +4,7 @@ if (new Date - global.db.data.users[m.sender].lastcofre < 0) throw `[❗𝐈𝐍
 
 let img = 'https://files.catbox.moe/e6hef7.jpg' 
 let texto = `• 𝐌𝐄𝐍𝐔-𝐋𝐎𝐆𝐎𝐒 •
-•°「 🔱*LOGOS BY SonicBot*🔱 」°•
+•°「 🔱*LOGOS BY AdriBot*🔱 」°•
 
 ┊➺ 🪩 .𝘭𝘰𝘨𝘰𝘤𝘰𝘳𝘢𝘻𝘰𝘯 (texto)
 ┊➺ 🪩 .𝘭𝘰𝘨𝘰𝘤𝘩𝘳𝘪𝘴𝘵𝘮𝘢𝘴 (texto)
