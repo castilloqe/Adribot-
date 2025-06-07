@@ -35,19 +35,19 @@ let who = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.fromMe ? c
 global.creador = 'Wa.me/50557865603'
 global.botreal = `${(conn.user.jid == global.conn.user.jid ? 'Oficial' : 'Sub-Bot')}`
 global.ofcbot = `${conn.user.jid.split('@')[0]}`
-global.asistencia = 'Wa.me/50557865603'
+global.asistencia = 'Wa.me/5215646069199'
 global.namech = '˙˒𖥻˚𝐂𝐫𝐨𝐰𝐁𝐨𝐭 - 𝐂𝐡𝐚𝐧𝐧𝐞𝐥﹋꥟'
 global.namechannel2 = '『✯ 𝗧𝗲𝗮𝗺 𝗖𝗼𝗺𝘂𝗻𝗶𝘁𝘆 𝗖𝗿𝗼𝘄 ✯』'
-global.namegrupo = 'シ︎ 𝗖𝗿𝗼𝘄𝗕𝗼𝘁-𝗠𝗗 💛'
-global.namecomu = '『𝗚𝗿𝘂𝗽𝗼 𝗢𝗳𝗶𝗰𝗶𝗮𝗹 𝗖𝗿𝗼𝘄𝗕𝗼𝘁✯』'
-global.namecomu2 = '𝗧𝗵𝗲𝗖𝗿𝗼𝘄𝗕𝗼𝘁'
+global.namegrupo = 'シ︎ Adri𝗕𝗼𝘁-𝗠𝗗 💛'
+global.namecomu = '『𝗚𝗿𝘂𝗽𝗼 𝗢𝗳𝗶𝗰𝗶𝗮𝗹 Adri𝗕𝗼𝘁✯』'
+global.namecomu2 = '𝗧𝗵𝗲Adri𝗕𝗼𝘁'
 
 //Reacciones De Comandos.!
 global.rwait = '🕒'
 global.done = '✅'
 global.error = '✖️'
 
-//Emojis determinado de CrowBot
+//Emojis determinado de AdriBot
 global.emoji = '🚩'
 global.emoji2 = '💛'
 global.emoji3 = '🌠'
@@ -59,10 +59,10 @@ global.emojis = [emoji, emoji2, emoji3, emoji4, emoji5].getRandom()
 global.wait = '🕒 *𝗘𝘀𝗽𝗲𝗿𝗮 𝗨𝗻 𝗠𝗼𝗺𝗲𝗻𝘁𝗼, 𝗦𝗼𝘆 𝗟𝗲𝗻𝘁𝗼 ...*';
 
 //Enlaces
-var grupo = 'https://chat.whatsapp.com/B7POPrlJiZf7UWHJKvzVkx'  
-var github = 'https://github.com/WillZek/CrowBot-ST' 
+var grupo = 'https://chat.whatsapp.com/H0Hz771Wdum6lGCVDJd5IL'  
+var github = 'https://github.com/castilloqe/Adribot-' 
 var web = 'https://crowbot-web.vercel.app/' 
-let instagram = 'https://www.instagram.com/crowbot_wa'
+let instagram = 'https://www.instagram.com/adrian___dh07?igsh=bHp2OHNuM3dudzl4'
 
 global.redes = [grupo, github, web, instagram].getRandom()
 
@@ -88,7 +88,7 @@ global.readMore = more.repeat(850)
 
 global.authsticker = `┊🤖Bot\n┊↳${botname}\n\n┊👑Usuario\n┊↳ @${conn.getName(m.sender)}`;
 
-global.packsticker = `┊ 🔱𝐒𝐪𝐮𝐚𝐝 𝐂𝐫𝐨𝐰'𝐬 𝐂𝐥𝐮𝐛\n↳https://crow-bot-dashboard.vercel.app/\n\n┊ 🎩Info:\n↳Wa.me/50557865603`
+global.packsticker = `┊ 🔱𝐒𝐪𝐮𝐚𝐝 Adri'𝐬 𝐂𝐥𝐮𝐛\n↳https://crow-bot-dashboard.vercel.app/\n\n┊ 🎩Info:\n↳Wa.me/5215646069199`
 
 //Fakes
 global.fkontak = { key: { participants:"0@s.whatsapp.net", "remoteJid": "status@broadcast", "fromMe": false, "id": "Halo" }, "message": { "contactMessage": { "vcard": `BEGIN:VCARD\nVERSION:3.0\nN:Sy;Bot;;;\nFN:y\nitem1.TEL;waid=50557865603:50557865603\nitem1.X-ABLabel:Ponsel\nEND:VCARD` }}, "participant": "0@s.whatsapp.net" }
