@@ -11,8 +11,9 @@ import moment from 'moment-timezone'
 // Staff De CrowBot
 global.owner = [
    ['5215646069199', 'Creador Adri 💛', true],
-   ['5215646069199', 'CrowBot Soporte', true],
-   ['50557865603', 'Willzek', true],
+   ['5212731590195', 'AdriBot Soporte', true],
+   ['5215646069199', 'AdriBot Soporte', true],
+   ['5215646069199', 'Adrik', true],
    ['584120346669', 'Dev ⁱᵃᵐ|𝔇ĕ𝐬†𝓻⊙γ𒆜', true],
    ['584241836217', 'Dev Prak', true],
    ['51968382008', 'Dev Darkcore', true],
