@@ -22,15 +22,15 @@ let handler = async (m, { conn, usedPrefix }) => {
     // Construimos el mensaje dependiendo de si hay una mención o no
     let str;
     if (m.mentionedJid.length > 0) {
-        str = `${name2} *Bienvenid@ al grupo* ${name || who} *esperemos la pases bien y que porfavor leas las reglas.`; // Usamos nombre agendado o número si no está agendado*
+        str = `${name2} *Bienvenid@ al grupo* ${name || who} *ENTRASTE AQUI PARA OBEDECER A ADRI.`; // Usamos nombre agendado o número si no está agendado*
     } else if (m.quoted) {
-        str = `${name2} hola ${name || who} *bienvenid@ grupo espero lo pasés muy bien y que lo disfrutes.*`; // Mensaje cuando se cita a otro usuario
+        str = `${name2} hola ${name || who} *bienvenid@ FOTOTETA A ADRI.*`; // Mensaje cuando se cita a otro usuario
     } else {
         str = `${name2} *Hola le doy la bienvenida a todos los nuevos y espero que lean las reglas sin más que decir pueden disfrutar del grupo y divertirse.*`.trim();
     }
 
     if (m.isGroup) {
-        let pp = 'https://telegra.ph/file/c62071be335ec9e97a0cf.mp4'; 
+        let pp = 'https://files.catbox.moe/9cuyoq.jpeg'; 
 
         const videos = [pp];
         const video = videos[Math.floor(Math.random() * videos.length)];
