@@ -23,7 +23,7 @@ let tags = {
   'logos': '「EDICION LOGOS」🍨', 
 }
 
-const vid = ['https://files.catbox.moe/5tjmag.mp4', 'https://files.catbox.moe/icwgjw.mp4'].getRandom();
+const vid = ['https://files.catbox.moe/zxovev.mp4', 'https://files.catbox.moe/zxovev.mp4'].getRandom();
 
 const defaultMenu = {
   before: `*•:•:•:•:•:•:•:•:•:•☾☼☽•:•.•:•.•:•:•:•:•:•*
