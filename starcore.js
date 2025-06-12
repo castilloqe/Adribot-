@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'url'
 import { platform } from 'process'
 import * as ws from 'ws'
 import fs from 'fs'
-import { readdirSync, statSync, unlinkSync, existsSync } from 'fs'
+import { readdirSync, statSync, unlinkSync, existsSync, readFileSync, rmSync, watch } from 'fs'
 import yargs from 'yargs'
 import { spawn } from 'child_process'
 import lodash from 'lodash'
@@ -15,13 +15,14 @@ import chalk from 'chalk'
 import syntaxerror from 'syntax-error'
 import { tmpdir } from 'os'
 import { format } from 'util'
+import P from 'pino'
 import pino from 'pino'
+import Pino from 'pino'
 import { Boom } from '@hapi/boom'
 import { makeWASocket, protoType, serialize } from './lib/simple.js'
 import { Low, JSONFile } from 'lowdb'
 import { mongoDB, mongoDBV2 } from './lib/mongoDB.js'
 import store from './lib/store.js'
-import QRCode from 'qrcode'
 
 const { proto } = (await import('@whiskeysockets/baileys')).default
 const {
@@ -37,24 +38,25 @@ const {
 import readline from 'readline'
 import NodeCache from 'node-cache'
 
+const { CONNECTING } = ws
+const { chain } = lodash
+const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
+
 protoType()
 serialize()
 
-// Helpers para path en ESM
-global.__filename = (pathURL = import.meta.url, rmPrefix = platform !== 'win32') =>
-  rmPrefix
-    ? /file:\/\/\//.test(pathURL)
-      ? fileURLToPath(pathURL)
-      : pathURL
-    : pathToFileURL(pathURL).toString()
+global.__filename = function filename(pathURL = import.meta.url, rmPrefix = platform !== 'win32') {
+  return rmPrefix ? (/file:\/\/\//.test(pathURL) ? fileURLToPath(pathURL) : pathURL) : pathToFileURL(pathURL).toString()
+}
 
-global.__dirname = (pathURL) => path.dirname(global.__filename(pathURL, true))
+global.__dirname = function dirname(pathURL) {
+  return path.dirname(global.__filename(pathURL, true))
+}
 
-global.__require = (dir = import.meta.url) => createRequire(dir)
+global.__require = function require(dir = import.meta.url) {
+  return createRequire(dir)
+}
 
-const __dirname = global.__dirname(import.meta.url)
-
-// API helper global
 global.API = (name, path = '/', query = {}, apikeyqueryname) =>
   (name in global.APIs ? global.APIs[name] : name) +
   path +
@@ -70,22 +72,24 @@ global.API = (name, path = '/', query = {}, apikeyqueryname) =>
 
 global.timestamp = { start: new Date() }
 
-// Leer opciones CLI
-global.opts = yargs(process.argv.slice(2)).exitProcess(false).parse()
+const __dirname = global.__dirname(import.meta.url)
+
+global.opts = new Object(yargs(process.argv.slice(2)).exitProcess(false).parse())
 global.prefix = new RegExp(
   '^[' + (opts['prefix'] || '‎z/#$%.\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']'
 )
 
-// Configurar base de datos LowDB
+// global.opts['db'] = process.env['db']
+
 global.db = new Low(
   /https?:\/\//.test(opts['db'] || '')
     ? new cloudDBAdapter(opts['db'])
     : new JSONFile(`${opts._[0] ? opts._[0] + '_' : ''}database.json`)
 )
+
 global.DATABASE = global.db
 
-// Carga base de datos
-global.loadDatabase = async () => {
+global.loadDatabase = async function loadDatabase() {
   if (global.db.READ)
     return new Promise((resolve) =>
       setInterval(async function () {
@@ -93,7 +97,7 @@ global.loadDatabase = async () => {
           clearInterval(this)
           resolve(global.db.data == null ? global.loadDatabase() : global.db.data)
         }
-      }, 1000)
+      }, 1 * 1000)
     )
   if (global.db.data !== null) return
   global.db.READ = true
@@ -108,77 +112,59 @@ global.loadDatabase = async () => {
     settings: {},
     ...(global.db.data || {})
   }
-  global.db.chain = lodash.chain(global.db.data)
+  global.db.chain = chain(global.db.data)
 }
-await loadDatabase()
+loadDatabase()
 
-// Auto guardado y limpieza tmp si está habilitado y no estamos en modo test
-if (!opts['test']) {
-  if (global.db) {
-    setInterval(async () => {
-      try {
-        if (global.db.data) {
-          await global.db.write()  // Guarda la base de datos periódicamente
-          console.log('Base de datos guardada automáticamente.')
-        }
-        if (opts['autocleartmp']) {
-          const tmpDirs = [tmpdir(), 'tmp', 'serbot']
-          tmpDirs.forEach((dir) => {
-            if (existsSync(dir)) {
-              spawn('find', [dir, '-amin', '3', '-type', 'f', '-delete'])
-              console.log(`Archivos antiguos eliminados en: ${dir}`)
-            }
-          })
-        }
-      } catch (e) {
-        console.error('Error en auto guardado o limpieza tmp:', e)
-      }
-    }, 30 * 1000) // Cada 30 segundos
-  }
-}
-
-global.authFile = 'sessions'
+global.authFile = `sessions`
 const { state, saveState, saveCreds } = await useMultiFileAuthState(global.authFile)
-
 const msgRetryCounterMap = (MessageRetryMap) => {}
 const msgRetryCounterCache = new NodeCache()
 const { version } = await fetchLatestBaileysVersion()
-const phoneNumber = global.botnumber
+let phoneNumber = global.botnumber
 
 const methodCodeQR = process.argv.includes('qr')
 const methodCode = !!phoneNumber || process.argv.includes('code')
-const methodMobile = process.argv.includes('mobile')
-
+const MethodMobile = process.argv.includes('mobile')
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
-const question = (text) => new Promise((resolve) => rl.question(text, resolve))
+const question = (texto) => new Promise((resolver) => rl.question(texto, resolver))
 
 let opcion
 if (methodCodeQR) {
   opcion = '1'
-} else if (!methodCodeQR && !methodCode && !fs.existsSync(`./${authFile}/creds.json`)) {
+}
+if (!methodCodeQR && !methodCode && !fs.existsSync(`./${authFile}/creds.json`)) {
   do {
+    let lineM = '⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ ⋯ 》'
     opcion = await question('Seleccione una opción:\n1. Con código QR\n2. Con código de texto de 8 dígitos\n---> ')
-    if (!/^[1-2]$/.test(opcion)) console.log('Por favor, seleccione solo 1 o 2.\n')
+
+    if (!/^[1-2]$/.test(opcion)) {
+      console.log('Por favor, seleccione solo 1 o 2.\n')
+    }
   } while ((opcion !== '1' && opcion !== '2') || fs.existsSync(`./${authFile}/creds.json`))
 }
-rl.close()
 
-console.info = () => {} // desactivar logs info por defecto
+console.info = () => {}
 
-// Opciones para baileys (sin printQRInTerminal)
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  mobile: methodMobile,
-  browser: opcion === '1' || methodCodeQR ? ['Sonic Bot', 'Safari', '2.0.0'] : ['Ubuntu', 'Chrome', '110.0.5585.95'],
+  printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
+  mobile: MethodMobile,
+  browser:
+    opcion == '1'
+      ? ['Sonic Bot', 'Safari', '2.0.0']
+      : methodCodeQR
+      ? ['Sonic Bot', 'Safari', '2.0.0']
+      : ['Ubuntu', 'Chrome', '110.0.5585.95'],
   auth: {
     creds: state.creds,
-    keys: makeCacheableSignalKeyStore(state.keys, pino({ level: 'fatal' }).child({ level: 'fatal' }))
+    keys: makeCacheableSignalKeyStore(state.keys, Pino({ level: 'fatal' }).child({ level: 'fatal' }))
   },
   markOnlineOnConnect: true,
   generateHighQualityLinkPreview: true,
-  getMessage: async (key) => {
-    const jid = jidNormalizedUser(key.remoteJid)
-    const msg = await store.loadMessage(jid, key.id)
+  getMessage: async (clave) => {
+    let jid = jidNormalizedUser(clave.remoteJid)
+    let msg = await store.loadMessage(jid, clave.id)
     return msg?.message || ''
   },
   msgRetryCounterCache,
@@ -189,17 +175,19 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions)
 
-// Manejo de login con código
 if (!fs.existsSync(`./${authFile}/creds.json`)) {
   if (opcion === '2' || methodCode) {
+    opcion = '2'
     if (!conn.authState.creds.registered) {
-      if (methodMobile) throw new Error('No se puede usar un código de emparejamiento con la API móvil')
+      if (MethodMobile) throw new Error('No se puede usar un código de emparejamiento con la API móvil')
 
-      let numeroTelefono = ''
-      if (phoneNumber) {
+      let numeroTelefono
+      if (!!phoneNumber) {
         numeroTelefono = phoneNumber.replace(/[^0-9]/g, '')
         if (!Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
-          console.log(chalk.bgBlack(chalk.bold.redBright('Comience con el código de país de su número de WhatsApp.\nejemplo: 54xxxxxxxxx\n')))
+          console.log(
+            chalk.bgBlack(chalk.bold.redBright('Comience con el código de país de su número de WhatsApp.\nejemplo: 54xxxxxxxxx\n'))
+          )
           process.exit(0)
         }
       } else {
@@ -212,18 +200,21 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
           if (numeroTelefono.match(/^\d+$/) && Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
             break
           } else {
-            console.log(chalk.bgBlack(chalk.bold.redBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 5218261275256.\n')))
+            console.log(
+              chalk.bgBlack(
+                chalk.bold.redBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 5218261275256.\n')
+              )
+            )
           }
         }
         rl.close()
       }
 
       setTimeout(async () => {
-        const codigo = (await conn.requestPairingCode(numeroTelefono))
-          ?.match(/.{1,4}/g)
-          ?.join('-')
+        let codigo = await conn.requestPairingCode(numeroTelefono)
+        codigo = codigo?.match(/.{1,4}/g)?.join('-') || codigo
         console.log(chalk.yellow('introduce el código de emparejamiento en WhatsApp.'))
-        console.log(chalk.black(chalk.bgGreen('Tu código de emparejamiento es : ')), chalk.black(chalk.white(codigo || '')))
+        console.log(chalk.black(chalk.bgGreen(`Tu código de emparejamiento es : `)), chalk.black(chalk.white(codigo)))
       }, 3000)
     }
   }
@@ -232,53 +223,88 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
 conn.isInit = false
 conn.well = false
 
-// Función para limpiar tmp files
+if (!opts['test']) {
+  if (global.db) {
+    setInterval(async () => {
+      if (global.db.data) await global.db.write()
+      if (opts['autocleartmp'] && (global.support || {}).find)
+        tmp = [os.tmpdir(), 'tmp', 'serbot'], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
+    }, 30 * 1000)
+  }
+}
+
+if (opts['server']) (await import('./server.js')).default(global.conn, PORT)
+
 function clearTmp() {
-  const tmpDirs = [join(__dirname, './tmp')]
-  const files = []
-  tmpDirs.forEach((dir) => readdirSync(dir).forEach((file) => files.push(join(dir, file))))
-  files.forEach((file) => {
+  const tmp = [join(__dirname, './tmp')]
+  const filename = []
+  tmp.forEach((dirname) => readdirSync(dirname).forEach((file) => filename.push(join(dirname, file))))
+  return filename.map((file) => {
     const stats = statSync(file)
-    if (stats.isFile() && Date.now() - stats.mtimeMs >= 1000 * 60 * 3) {
-      unlinkSync(file)
-    }
+    if (stats.isFile() && Date.now() - stats.mtimeMs >= 1000 * 60 * 3) return unlinkSync(file) // 3 minutes
+    return false
   })
 }
 
-// Manejo de eventos de conexión
-conn.connectionUpdate = async (update) => {
-  const { connection, lastDisconnect, qr } = update
+function purgeSession() {
+  let prekey = []
+  let directorio = readdirSync('./sessions')
+  let filesFolderPreKeys = directorio.filter((file) => file.startsWith('pre-key-'))
+  prekey = [...prekey, ...filesFolderPreKeys]
+  filesFolderPreKeys.forEach((files) => {
+    unlinkSync(`./sessions/${files}`)
+  })
+}
 
-  if (qr) {
-    try {
-      await QRCode.toFile('qr-whatsapp.png', qr, {
-        color: { dark: '#000000', light: '#FFFFFF' },
-        width: 300
-      })
-      console.log(chalk.green('QR generado y guardado en qr-whatsapp.png'))
-    } catch (err) {
-      console.error('Error generando el QR:', err)
-    }
-  }
-
-  if (connection) {
-    console.log(`Estado de conexión: ${connection}`)
-  }
-
-  if (connection === 'close') {
-    const statusCode = (lastDisconnect?.error instanceof Boom && lastDisconnect.error.output.statusCode) || null
-    if (statusCode === DisconnectReason.loggedOut) {
-      console.log(chalk.red('Sesión cerrada, elimine la carpeta "sessions" y vuelva a iniciar.'))
-      process.exit(0)
-    } else {
-      console.log('Conexión cerrada por otra razón, intentando reconectar...')
-      conn.isInit = false
-      await conn.logout()
-      start() // Debes definir esta función start si quieres reconectar automáticamente
-    }
-  } else if (connection === 'open') {
-    conn.isInit = true
-    conn.well = true
-    console.log(chalk.green('Conectado correctamente!'))
+function purgeSessionSB() {
+  try {
+    let listaDirectorios = readdirSync('./serbot/')
+    let SBprekey = []
+    listaDirectorios.forEach((directorio) => {
+      if (statSync(`./serbot/${directorio}`).isDirectory()) {
+        let DSBPreKeys = readdirSync(`./serbot/${directorio}`).filter((fileInDir) => {
+          return fileInDir.startsWith('pre-key-')
+        })
+        SBprekey = [...SBprekey, ...DSBPreKeys]
+        DSBPreKeys.forEach((fileInDir) => {
+          unlinkSync(`./serbot/${directorio}/${fileInDir}`)
+        })
+      }
+    })
+    if (SBprekey.length === 0) return
+    console.log(chalk.cyanBright(`=> No hay archivos por eliminar.`))
+  } catch (err) {
+    console.log(chalk.bold.red(`Algo salio mal durante la eliminación, archivos no eliminados`))
   }
 }
+
+function purgeOldFiles() {
+  const directories = ['./sessions/', './serbot/']
+  const oneHour = 3600 * 1000
+
+  directories.forEach((directory) => {
+    if (!existsSync(directory)) return
+    readdirSync(directory).forEach((file) => {
+      const fullPath = join(directory, file)
+      if (!statSync(fullPath).isFile()) return
+      const age = Date.now() - statSync(fullPath).mtimeMs
+      if (age > oneHour) {
+        unlinkSync(fullPath)
+        console.log(chalk.red(`Archivo eliminado: ${fullPath}`))
+      }
+    })
+  })
+}
+
+async function main() {
+  if (opts['purge']) {
+    purgeSession()
+    purgeSessionSB()
+    purgeOldFiles()
+  }
+}
+
+main()
+
+// Exporta conn para usarlo en otros módulos
+export default global.conn
