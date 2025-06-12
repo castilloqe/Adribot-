@@ -40,7 +40,6 @@ import NodeCache from 'node-cache'
 protoType()
 serialize()
 
-// Helpers para path en ESM
 global.__filename = (pathURL = import.meta.url, rmPrefix = platform !== 'win32') =>
   rmPrefix
     ? /file:\/\/\//.test(pathURL)
@@ -54,7 +53,6 @@ global.__require = (dir = import.meta.url) => createRequire(dir)
 
 const __dirname = global.__dirname(import.meta.url)
 
-// API helper global
 global.API = (name, path = '/', query = {}, apikeyqueryname) =>
   (name in global.APIs ? global.APIs[name] : name) +
   path +
@@ -70,13 +68,11 @@ global.API = (name, path = '/', query = {}, apikeyqueryname) =>
 
 global.timestamp = { start: new Date() }
 
-// Leer opciones CLI
 global.opts = yargs(process.argv.slice(2)).exitProcess(false).parse()
 global.prefix = new RegExp(
   '^[' + (opts['prefix'] || '‎z/#$%.\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']'
 )
 
-// Configurar base de datos LowDB
 global.db = new Low(
   /https?:\/\//.test(opts['db'] || '')
     ? new cloudDBAdapter(opts['db'])
@@ -84,7 +80,6 @@ global.db = new Low(
 )
 global.DATABASE = global.db
 
-// Carga base de datos
 global.loadDatabase = async () => {
   if (global.db.READ)
     return new Promise((resolve) =>
@@ -140,10 +135,9 @@ rl.close()
 
 console.info = () => {} // desactivar logs info por defecto
 
-// Opciones para baileys
+// Opciones para baileys SIN printQRInTerminal (deprecated)
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  printQRInTerminal: opcion === '1' || methodCodeQR,
   mobile: methodMobile,
   browser: opcion === '1' || methodCodeQR ? ['Sonic Bot', 'Safari', '2.0.0'] : ['Ubuntu', 'Chrome', '110.0.5585.95'],
   auth: {
@@ -163,50 +157,100 @@ const connectionOptions = {
   version
 }
 
-global.conn = makeWASocket(connectionOptions)
+let conn
 
-// Manejo de login con código
-if (!fs.existsSync(`./${authFile}/creds.json`)) {
-  if (opcion === '2' || methodCode) {
-    if (!conn.authState.creds.registered) {
-      if (methodMobile) throw new Error('No se puede usar un código de emparejamiento con la API móvil')
+async function start() {
+  conn = makeWASocket(connectionOptions)
 
-      let numeroTelefono = ''
-      if (phoneNumber) {
-        numeroTelefono = phoneNumber.replace(/[^0-9]/g, '')
-        if (!Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
-          console.log(chalk.bgBlack(chalk.bold.redBright('Comience con el código de país de su número de WhatsApp.\nejemplo: 54xxxxxxxxx\n')))
-          process.exit(0)
-        }
-      } else {
-        while (true) {
-          numeroTelefono = await question(
-            chalk.bgBlack(chalk.bold.yellowBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 54xxxxxxxxx\n'))
-          )
-          numeroTelefono = numeroTelefono.replace(/[^0-9]/g, '')
+  // Guardar credenciales automáticamente
+  conn.ev.on('creds.update', saveState)
+  // Manejo eventos de conexión
+  conn.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update
 
-          if (numeroTelefono.match(/^\d+$/) && Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
-            break
-          } else {
-            console.log(chalk.bgBlack(chalk.bold.redBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 5218261275256.\n')))
-          }
-        }
-        rl.close()
+    if (qr) {
+      try {
+        console.log('Escanea este código QR con WhatsApp:\n')
+        console.log(qr)
+
+        // Guardar QR en PNG para escanear si quieres
+        await QRCode.toFile('qr-whatsapp.png', qr, {
+          color: { dark: '#000000', light: '#FFFFFF' },
+          width: 300
+        })
+        console.log(chalk.green('QR generado y guardado en qr-whatsapp.png\n'))
+      } catch (err) {
+        console.error('Error generando el QR:', err)
       }
+    }
 
-      setTimeout(async () => {
-        const codigo = (await conn.requestPairingCode(numeroTelefono))
-          ?.match(/.{1,4}/g)
-          ?.join('-')
-        console.log(chalk.yellow('introduce el código de emparejamiento en WhatsApp.'))
-        console.log(chalk.black(chalk.bgGreen('Tu código de emparejamiento es : ')), chalk.black(chalk.white(codigo || '')))
-      }, 3000)
+    if (connection) console.log(`Estado de conexión: ${connection}`)
+
+    if (connection === 'close') {
+      const statusCode = (lastDisconnect?.error instanceof Boom && lastDisconnect.error.output.statusCode) || null
+      if (statusCode === DisconnectReason.loggedOut) {
+        console.log(chalk.red('Sesión cerrada, elimine la carpeta "sessions" y vuelva a iniciar.'))
+        process.exit(0)
+      } else {
+        console.log('Conexión cerrada por otra razón, intentando reconectar...')
+        conn.isInit = false
+        try {
+          await conn.logout()
+        } catch {}
+        start()
+      }
+    } else if (connection === 'open') {
+      conn.isInit = true
+      conn.well = true
+      console.log(chalk.green('Conectado correctamente!'))
+    }
+  })
+
+  // Manejo de login con código si no hay creds y opción 2 seleccionada
+  if (!fs.existsSync(`./${authFile}/creds.json`)) {
+    if (opcion === '2' || methodCode) {
+      if (!conn.authState.creds.registered) {
+        if (methodMobile) throw new Error('No se puede usar un código de emparejamiento con la API móvil')
+
+        let numeroTelefono = ''
+        if (phoneNumber) {
+          numeroTelefono = phoneNumber.replace(/[^0-9]/g, '')
+          if (!Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
+            console.log(chalk.bgBlack(chalk.bold.redBright('Comience con el código de país de su número de WhatsApp.\nejemplo: 54xxxxxxxxx\n')))
+            process.exit(0)
+          }
+        } else {
+          while (true) {
+            numeroTelefono = await question(
+              chalk.bgBlack(chalk.bold.yellowBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 54xxxxxxxxx\n'))
+            )
+            numeroTelefono = numeroTelefono.replace(/[^0-9]/g, '')
+
+            if (numeroTelefono.match(/^\d+$/) && Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
+              break
+            } else {
+              console.log(chalk.bgBlack(chalk.bold.redBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 5218261275256.\n')))
+            }
+          }
+          rl.close()
+        }
+
+        setTimeout(async () => {
+          const codigo = (await conn.requestPairingCode(numeroTelefono))
+            ?.match(/.{1,4}/g)
+            ?.join('-')
+          console.log(chalk.yellow('introduce el código de emparejamiento en WhatsApp.'))
+          console.log(chalk.black(chalk.bgGreen('Tu código de emparejamiento es : ')), chalk.black(chalk.white(codigo || '')))
+        }, 3000)
+      }
     }
   }
+
+  conn.isInit = false
+  conn.well = false
 }
 
-conn.isInit = false
-conn.well = false
+start()
 
 // Auto guardado y limpieza tmp si está habilitado
 if (!opts['test']) {
@@ -235,42 +279,4 @@ function clearTmp() {
       unlinkSync(file)
     }
   })
-}
-
-// Manejo de eventos de conexión
-conn.connectionUpdate = async (update) => {
-  const { connection, lastDisconnect, qr } = update
-
-  if (qr) {
-    try {
-      await QRCode.toFile('qr-whatsapp.png', qr, {
-        color: { dark: '#000000', light: '#FFFFFF' },
-        width: 300
-      })
-      console.log(chalk.green('QR generado y guardado en qr-whatsapp.png'))
-    } catch (err) {
-      console.error('Error generando el QR:', err)
-    }
-  }
-
-  if (connection) {
-    console.log(`Estado de conexión: ${connection}`)
-  }
-
-  if (connection === 'close') {
-    const statusCode = (lastDisconnect?.error instanceof Boom && lastDisconnect.error.output.statusCode) || null
-    if (statusCode === DisconnectReason.loggedOut) {
-      console.log(chalk.red('Sesión cerrada, elimine la carpeta "sessions" y vuelva a iniciar.'))
-      process.exit(0)
-    } else {
-      console.log('Conexión cerrada por otra razón, intentando reconectar...')
-      conn.isInit = false
-      await conn.logout()
-      start() // Debes definir esta función start si quieres reconectar automáticamente
-    }
-  } else if (connection === 'open') {
-    conn.isInit = true
-    conn.well = true
-    console.log(chalk.green('Conectado correctamente!'))
-  }
 }
