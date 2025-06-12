@@ -147,24 +147,7 @@ async function startConnection() {
   })
 
   conn.ev.on('creds.update', saveCreds)
-  conn.ev.on('messages.upsert', async ({ messages, type }) => {
-    const msg = messages[0]
-    if (!msg.message || msg.key.fromMe) return
-
-    const m = msg.message
-    const sender = msg.key.remoteJid
-
-    const texto = m.conversation || m.extendedTextMessage?.text || ''
-
-    console.log(`[${sender}]: ${texto}`)
-
-    if (texto.toLowerCase().includes('hola')) {
-      await conn.sendMessage(sender, { text: '¡Hola! ¿En qué puedo ayudarte?' })
-    }
-  })
-const pluginFolder = path.join(__dirname, 'plugins')
-global.plugins = {}
-
+ 
 const loadPlugins = () => {
   const files = fs.readdirSync(pluginFolder).filter(file => file.endsWith('.js'))
   for (const file of files) {
