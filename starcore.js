@@ -162,6 +162,25 @@ async function startConnection() {
       await conn.sendMessage(sender, { text: '¡Hola! ¿En qué puedo ayudarte?' })
     }
   })
+const pluginFolder = path.join(__dirname, 'plugins')
+global.plugins = {}
+
+const loadPlugins = () => {
+  const files = fs.readdirSync(pluginFolder).filter(file => file.endsWith('.js'))
+  for (const file of files) {
+    try {
+      const pluginPath = path.join(pluginFolder, file)
+      delete import.cache?.[pluginPath]
+      import(pluginPath).then((module) => {
+        global.plugins[file] = module.default || module
+        console.log(chalk.green(`[PLUGIN] Cargado: ${file}`))
+      })
+    } catch (e) {
+      console.error(chalk.red(`[PLUGIN ERROR] ${file}:`), e)
+    }
+  }
+}
+loadPlugins()
 
   return conn
 }
