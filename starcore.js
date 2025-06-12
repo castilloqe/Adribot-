@@ -24,6 +24,8 @@ import { Low, JSONFile } from 'lowdb'
 import { mongoDB, mongoDBV2 } from './lib/mongoDB.js'
 import store from './lib/store.js'
 
+import qrcode from 'qrcode-terminal'
+
 const { proto } = (await import('@whiskeysockets/baileys')).default
 const {
   DisconnectReason,
@@ -148,7 +150,8 @@ console.info = () => {}
 
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
+  // Eliminar la opción deprecada printQRInTerminal
+  // printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
   mobile: MethodMobile,
   browser:
     opcion == '1'
@@ -174,6 +177,31 @@ const connectionOptions = {
 }
 
 global.conn = makeWASocket(connectionOptions)
+
+// Manejamos el evento connection.update para mostrar QR y estados
+conn.ev.on('connection.update', (update) => {
+  const { connection, qr, lastDisconnect } = update
+  if (qr) {
+    console.log(chalk.cyan('Escanea este código QR con WhatsApp:\n'))
+    qrcode.generate(qr, { small: true })
+  }
+
+  if (connection === 'close') {
+    const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
+    console.log(chalk.red(`Conexión cerrada debido a ${lastDisconnect?.error?.message || lastDisconnect?.error}`))
+    if (shouldReconnect) {
+      console.log(chalk.yellow('Reconectando...'))
+      main() // o la función que reinicie la conexión
+    } else {
+      console.log(chalk.red('Sesión cerrada, necesita volver a iniciar sesión manualmente.'))
+      process.exit(0)
+    }
+  }
+
+  if (connection === 'open') {
+    console.log(chalk.green('Conexión establecida correctamente.'))
+  }
+})
 
 if (!fs.existsSync(`./${authFile}/creds.json`)) {
   if (opcion === '2' || methodCode) {
@@ -228,7 +256,7 @@ if (!opts['test']) {
     setInterval(async () => {
       if (global.db.data) await global.db.write()
       if (opts['autocleartmp'] && (global.support || {}).find)
-        tmp = [os.tmpdir(), 'tmp', 'serbot'], tmp.forEach((filename) => cp.spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
+        tmp = [tmpdir(), 'tmp', 'serbot'], tmp.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
     }, 30 * 1000)
   }
 }
