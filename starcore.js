@@ -22,7 +22,7 @@ const {
   useMultiFileAuthState,
   fetchLatestBaileysVersion,
   makeCacheableSignalKeyStore,
-  jidNormalizedUser
+  jidNormalizedUser 
 } = await import('@whiskeysockets/baileys')
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
@@ -101,7 +101,7 @@ const connectionOptions = {
   generateHighQualityLinkPreview: true,
   markOnlineOnConnect: true,
   getMessage: async (key) => {
-    const jid = jidNormalizedUser(key.remoteJid)
+    const jid = jidNormalizedUser (key.remoteJid)
     const msg = await store.loadMessage(jid, key.id)
     return msg?.message || ''
   },
