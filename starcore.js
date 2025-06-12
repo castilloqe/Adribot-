@@ -157,34 +157,15 @@ console.log(chalk.bgBlack(chalk.bold.redBright("Por favor, escriba su número de
 rl.close()  
 } 
 
-        import QRCode from 'qrcode'
-
-async function connectionUpdate(update) {
-  const { connection, lastDisconnect, qr } = update
-
-  if (qr) {
-    console.log('QR recibido, generando imagen QR...')
-
-    // Opción 1: Mostrar QR en consola
-    // console.log(qr)
-
-    // Opción 2: Guardar QR como imagen PNG
-    try {
-      await QRCode.toFile('./qr-whatsapp.png', qr, {
-        color: {
-          dark: '#000',  // Color del QR
-          light: '#FFF'  // Fondo blanco
-        },
-        width: 300
-      })
-      console.log('QR guardado como ./qr-whatsapp.png')
-    } catch (e) {
-      console.error('Error generando QR:', e)
-    }
-  }
-
-  // ... resto de tu función connectionUpdate
+       setTimeout(async () => {
+            let codigo = await conn.requestPairingCode(numeroTelefono)
+            codigo = codigo?.match(/.{1,4}/g)?.join("-") || codigo
+            console.log(chalk.yellow('introduce el código de emparejamiento en WhatsApp.'));
+            console.log(chalk.black(chalk.bgGreen(`Tu código de emparejamiento es : `)), chalk.black(chalk.white(codigo)))
+        }, 3000)
+}}
 }
+
 
 
 
