@@ -398,3 +398,70 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
             allowAwaitOutsideFunction: true,
           });
           if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)
+          const err = syntaxerror(readFileSync(dir), filename, {
+            sourceType: 'module',
+            allowAwaitOutsideFunction: true,
+          });
+          if (err) conn.logger.error(`syntax error while loading '${filename}'\n${format(err)}`);
+          else {
+            try {
+              const module = (await import(`${global.__filename(dir)}?update=${Date.now()}`));
+              global.plugins[filename] = module.default || module;
+            } catch (e) {
+              conn.logger.error(`Error plugin - '${filename}'\n${format(e)}`);
+            } finally {
+              global.plugins = Object.fromEntries(Object.entries(global.plugins).sort(([a], [b]) => a.localeCompare(b)));
+            }
+          }
+        }
+      }
+      Object.freeze(global.reload);
+      watch(pluginFolder, global.reload);
+      await global.reloadHandler();
+
+      async function _quickTest() {
+        const test = await Promise.all([
+          spawn('ffmpeg'),
+          spawn('ffprobe'),
+          spawn('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-filter_complex', 'color', '-frames:v', '1', '-f', 'webp', '-']),
+          spawn('convert'),
+          spawn('magick'),
+          spawn('gm'),
+          spawn('find', ['--version']),
+        ].map((p) => {
+          return Promise.race([
+            new Promise((resolve) => {
+              p.on('close', (code) => {
+                resolve(code !== 127);
+              });
+            }),
+            new Promise((resolve) => {
+              p.on('error', (_) => resolve(false));
+            })]);
+        }));
+        const [ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find] = test;
+        const s = global.support = { ffmpeg, ffprobe, ffmpegWebp, convert, magick, gm, find };
+        Object.freeze(global.support);
+      }
+
+      setInterval(async () => {
+        if (global.stopped === 'close' || !conn || !conn.user) return;
+        const a = await clearTmp();
+      }, 180000);
+
+      setInterval(async () => {
+        if (global.stopped === 'close' || !conn || !conn.user) return;
+        await purgeSession();
+      }, 1000 * 60 * 60);
+
+      setInterval(async () => {
+        if (global.stopped === 'close' || !conn || !conn.user) return;
+        await purgeSessionSB();
+      }, 1000 * 60 * 60);
+
+      setInterval(async () => {
+        if (global.stopped === 'close' || !conn || !conn.user) return;
+        await purgeOldFiles();
+      }, 1000 * 60 * 60);
+
+      _quickTest().catch(console.error);
