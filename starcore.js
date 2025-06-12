@@ -140,10 +140,9 @@ rl.close()
 
 console.info = () => {} // desactivar logs info por defecto
 
-// Opciones para baileys
+// Opciones para baileys (sin printQRInTerminal)
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  printQRInTerminal: opcion === '1' || methodCodeQR,
   mobile: methodMobile,
   browser: opcion === '1' || methodCodeQR ? ['Sonic Bot', 'Safari', '2.0.0'] : ['Ubuntu', 'Chrome', '110.0.5585.95'],
   auth: {
@@ -165,62 +164,10 @@ const connectionOptions = {
 
 global.conn = makeWASocket(connectionOptions)
 
-// Función para reconectar (reutilizable)
-async function start() {
-  global.conn.ev.removeAllListeners() // limpiar listeners previos
-  global.conn = makeWASocket(connectionOptions)
-
-  // Evento connection.update con listener correcto
-  global.conn.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update
-
-    if (qr) {
-      try {
-        await QRCode.toFile('qr-whatsapp.png', qr, {
-          color: { dark: '#000000', light: '#FFFFFF' },
-          width: 300
-        })
-        console.log(chalk.green('QR generado y guardado en qr-whatsapp.png'))
-      } catch (err) {
-        console.error('Error generando el QR:', err)
-      }
-    }
-
-    if (connection) {
-      console.log(`Estado de conexión: ${connection}`)
-    }
-
-    if (connection === 'close') {
-      const statusCode = (lastDisconnect?.error instanceof Boom && lastDisconnect.error.output.statusCode) || null
-      if (statusCode === DisconnectReason.loggedOut) {
-        console.log(chalk.red('Sesión cerrada, elimine la carpeta "sessions" y vuelva a iniciar.'))
-        process.exit(0)
-      } else {
-        console.log('Conexión cerrada por otra razón, intentando reconectar...')
-        global.conn.isInit = false
-        try {
-          await global.conn.logout()
-        } catch {}
-        await start() // reconectar
-      }
-    } else if (connection === 'open') {
-      global.conn.isInit = true
-      global.conn.well = true
-      console.log(chalk.green('Conectado correctamente!'))
-    }
-  })
-
-  // Puedes agregar más eventos aquí si necesitas
-
-  return global.conn
-}
-
-await start()
-
-// Manejo de login con código (solo si no existe el archivo de credenciales)
+// Manejo de login con código
 if (!fs.existsSync(`./${authFile}/creds.json`)) {
   if (opcion === '2' || methodCode) {
-    if (!global.conn.authState.creds.registered) {
+    if (!conn.authState.creds.registered) {
       if (methodMobile) throw new Error('No se puede usar un código de emparejamiento con la API móvil')
 
       let numeroTelefono = ''
@@ -247,7 +194,7 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
       }
 
       setTimeout(async () => {
-        const codigo = (await global.conn.requestPairingCode(numeroTelefono))
+        const codigo = (await conn.requestPairingCode(numeroTelefono))
           ?.match(/.{1,4}/g)
           ?.join('-')
         console.log(chalk.yellow('introduce el código de emparejamiento en WhatsApp.'))
@@ -257,8 +204,8 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
   }
 }
 
-global.conn.isInit = false
-global.conn.well = false
+conn.isInit = false
+conn.well = false
 
 // Auto guardado y limpieza tmp si está habilitado
 if (!opts['test']) {
@@ -287,4 +234,42 @@ function clearTmp() {
       unlinkSync(file)
     }
   })
+}
+
+// Manejo de eventos de conexión
+conn.connectionUpdate = async (update) => {
+  const { connection, lastDisconnect, qr } = update
+
+  if (qr) {
+    try {
+      await QRCode.toFile('qr-whatsapp.png', qr, {
+        color: { dark: '#000000', light: '#FFFFFF' },
+        width: 300
+      })
+      console.log(chalk.green('QR generado y guardado en qr-whatsapp.png'))
+    } catch (err) {
+      console.error('Error generando el QR:', err)
+    }
+  }
+
+  if (connection) {
+    console.log(`Estado de conexión: ${connection}`)
+  }
+
+  if (connection === 'close') {
+    const statusCode = (lastDisconnect?.error instanceof Boom && lastDisconnect.error.output.statusCode) || null
+    if (statusCode === DisconnectReason.loggedOut) {
+      console.log(chalk.red('Sesión cerrada, elimine la carpeta "sessions" y vuelva a iniciar.'))
+      process.exit(0)
+    } else {
+      console.log('Conexión cerrada por otra razón, intentando reconectar...')
+      conn.isInit = false
+      await conn.logout()
+      start() // Debes definir esta función start si quieres reconectar automáticamente
+    }
+  } else if (connection === 'open') {
+    conn.isInit = true
+    conn.well = true
+    console.log(chalk.green('Conectado correctamente!'))
+  }
 }
