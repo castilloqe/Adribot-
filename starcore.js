@@ -81,8 +81,6 @@ global.prefix = new RegExp(
   '^[' + (opts['prefix'] || '‎z/#$%.\\-').replace(/[|\\{}()[\]^$+*?.\-\^]/g, '\\$&') + ']'
 )
 
-// global.opts['db'] = process.env['db']
-
 global.db = new Low(
   /https?:\/\//.test(opts['db'] || '')
     ? new cloudDBAdapter(opts['db'])
@@ -150,8 +148,6 @@ console.info = () => {}
 
 const connectionOptions = {
   logger: pino({ level: 'silent' }),
-  // Eliminar la opción deprecada printQRInTerminal
-  // printQRInTerminal: opcion == '1' ? true : methodCodeQR ? true : false,
   mobile: MethodMobile,
   browser:
     opcion == '1'
@@ -176,163 +172,42 @@ const connectionOptions = {
   version
 }
 
-global.conn = makeWASocket(connectionOptions)
+let conn
 
-// Manejamos el evento connection.update para mostrar QR y estados
-conn.ev.on('connection.update', (update) => {
-  const { connection, qr, lastDisconnect } = update
-  if (qr) {
-    console.log(chalk.cyan('Escanea este código QR con WhatsApp:\n'))
-    qrcode.generate(qr, { small: true })
-  }
+async function startConnection() {
+  conn = makeWASocket(connectionOptions)
 
-  if (connection === 'close') {
-    const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
-    console.log(chalk.red(`Conexión cerrada debido a ${lastDisconnect?.error?.message || lastDisconnect?.error}`))
-    if (shouldReconnect) {
-      console.log(chalk.yellow('Reconectando...'))
-      main() // o la función que reinicie la conexión
-    } else {
-      console.log(chalk.red('Sesión cerrada, necesita volver a iniciar sesión manualmente.'))
-      process.exit(0)
+  conn.ev.on('connection.update', (update) => {
+    const { connection, qr, lastDisconnect } = update
+    if (qr) {
+      console.log(chalk.cyan('Escanea este código QR con WhatsApp:\n'))
+      qrcode.generate(qr, { small: true })
     }
-  }
 
-  if (connection === 'open') {
-    console.log(chalk.green('Conexión establecida correctamente.'))
-  }
-})
-
-if (!fs.existsSync(`./${authFile}/creds.json`)) {
-  if (opcion === '2' || methodCode) {
-    opcion = '2'
-    if (!conn.authState.creds.registered) {
-      if (MethodMobile) throw new Error('No se puede usar un código de emparejamiento con la API móvil')
-
-      let numeroTelefono
-      if (!!phoneNumber) {
-        numeroTelefono = phoneNumber.replace(/[^0-9]/g, '')
-        if (!Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
-          console.log(
-            chalk.bgBlack(chalk.bold.redBright('Comience con el código de país de su número de WhatsApp.\nejemplo: 54xxxxxxxxx\n'))
-          )
-          process.exit(0)
-        }
+    if (connection === 'close') {
+      const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut
+      console.log(chalk.red(`Conexión cerrada debido a ${lastDisconnect?.error?.message || lastDisconnect?.error}`))
+      if (shouldReconnect) {
+        console.log(chalk.yellow('Reconectando...'))
+        startConnection() // reinicia la conexión
       } else {
-        while (true) {
-          numeroTelefono = await question(
-            chalk.bgBlack(chalk.bold.yellowBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 54xxxxxxxxx\n'))
-          )
-          numeroTelefono = numeroTelefono.replace(/[^0-9]/g, '')
-
-          if (numeroTelefono.match(/^\d+$/) && Object.keys(PHONENUMBER_MCC).some((v) => numeroTelefono.startsWith(v))) {
-            break
-          } else {
-            console.log(
-              chalk.bgBlack(
-                chalk.bold.redBright('Por favor, escriba su número de WhatsApp.\nEjemplo: 5218261275256.\n')
-              )
-            )
-          }
-        }
-        rl.close()
+        console.log(chalk.red('Sesión cerrada, necesita volver a iniciar sesión manualmente.'))
+        process.exit(0)
       }
-
-      setTimeout(async () => {
-        let codigo = await conn.requestPairingCode(numeroTelefono)
-        codigo = codigo?.match(/.{1,4}/g)?.join('-') || codigo
-        console.log(chalk.yellow('introduce el código de emparejamiento en WhatsApp.'))
-        console.log(chalk.black(chalk.bgGreen(`Tu código de emparejamiento es : `)), chalk.black(chalk.white(codigo)))
-      }, 3000)
     }
-  }
-}
 
-conn.isInit = false
-conn.well = false
-
-if (!opts['test']) {
-  if (global.db) {
-    setInterval(async () => {
-      if (global.db.data) await global.db.write()
-      if (opts['autocleartmp'] && (global.support || {}).find)
-        tmp = [tmpdir(), 'tmp', 'serbot'], tmp.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
-    }, 30 * 1000)
-  }
-}
-
-if (opts['server']) (await import('./server.js')).default(global.conn, PORT)
-
-function clearTmp() {
-  const tmp = [join(__dirname, './tmp')]
-  const filename = []
-  tmp.forEach((dirname) => readdirSync(dirname).forEach((file) => filename.push(join(dirname, file))))
-  return filename.map((file) => {
-    const stats = statSync(file)
-    if (stats.isFile() && Date.now() - stats.mtimeMs >= 1000 * 60 * 3) return unlinkSync(file) // 3 minutes
-    return false
+    if (connection === 'open') {
+      console.log(chalk.green('Conexión establecida correctamente.'))
+    }
   })
+
+  // Puedes añadir aquí más eventos o lógica de tu bot...
+
+  return conn
 }
 
-function purgeSession() {
-  let prekey = []
-  let directorio = readdirSync('./sessions')
-  let filesFolderPreKeys = directorio.filter((file) => file.startsWith('pre-key-'))
-  prekey = [...prekey, ...filesFolderPreKeys]
-  filesFolderPreKeys.forEach((files) => {
-    unlinkSync(`./sessions/${files}`)
-  })
-}
-
-function purgeSessionSB() {
-  try {
-    let listaDirectorios = readdirSync('./serbot/')
-    let SBprekey = []
-    listaDirectorios.forEach((directorio) => {
-      if (statSync(`./serbot/${directorio}`).isDirectory()) {
-        let DSBPreKeys = readdirSync(`./serbot/${directorio}`).filter((fileInDir) => {
-          return fileInDir.startsWith('pre-key-')
-        })
-        SBprekey = [...SBprekey, ...DSBPreKeys]
-        DSBPreKeys.forEach((fileInDir) => {
-          unlinkSync(`./serbot/${directorio}/${fileInDir}`)
-        })
-      }
-    })
-    if (SBprekey.length === 0) return
-    console.log(chalk.cyanBright(`=> No hay archivos por eliminar.`))
-  } catch (err) {
-    console.log(chalk.bold.red(`Algo salio mal durante la eliminación, archivos no eliminados`))
-  }
-}
-
-function purgeOldFiles() {
-  const directories = ['./sessions/', './serbot/']
-  const oneHour = 3600 * 1000
-
-  directories.forEach((directory) => {
-    if (!existsSync(directory)) return
-    readdirSync(directory).forEach((file) => {
-      const fullPath = join(directory, file)
-      if (!statSync(fullPath).isFile()) return
-      const age = Date.now() - statSync(fullPath).mtimeMs
-      if (age > oneHour) {
-        unlinkSync(fullPath)
-        console.log(chalk.red(`Archivo eliminado: ${fullPath}`))
-      }
-    })
-  })
-}
-
-async function main() {
-  if (opts['purge']) {
-    purgeSession()
-    purgeSessionSB()
-    purgeOldFiles()
-  }
-}
-
-main()
+// Inicia conexión por primera vez
+startConnection()
 
 // Exporta conn para usarlo en otros módulos
-export default global.conn
+export default conn
