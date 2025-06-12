@@ -112,6 +112,31 @@ global.loadDatabase = async () => {
 }
 await loadDatabase()
 
+// Auto guardado y limpieza tmp si está habilitado y no estamos en modo test
+if (!opts['test']) {
+  if (global.db) {
+    setInterval(async () => {
+      try {
+        if (global.db.data) {
+          await global.db.write()  // Guarda la base de datos periódicamente
+          console.log('Base de datos guardada automáticamente.')
+        }
+        if (opts['autocleartmp']) {
+          const tmpDirs = [tmpdir(), 'tmp', 'serbot']
+          tmpDirs.forEach((dir) => {
+            if (existsSync(dir)) {
+              spawn('find', [dir, '-amin', '3', '-type', 'f', '-delete'])
+              console.log(`Archivos antiguos eliminados en: ${dir}`)
+            }
+          })
+        }
+      } catch (e) {
+        console.error('Error en auto guardado o limpieza tmp:', e)
+      }
+    }, 30 * 1000) // Cada 30 segundos
+  }
+}
+
 global.authFile = 'sessions'
 const { state, saveState, saveCreds } = await useMultiFileAuthState(global.authFile)
 
@@ -206,22 +231,6 @@ if (!fs.existsSync(`./${authFile}/creds.json`)) {
 
 conn.isInit = false
 conn.well = false
-
-// Auto guardado y limpieza tmp si está habilitado
-if (!opts['test']) {
-  if (global.db) {
-    setInterval(async () => {
-      if (global.db.data) await global.db.write()
-      if (opts['autocleartmp'] && global.support?.find) {
-        const tmp = [tmpdir(), 'tmp', 'serbot']
-        tmp.forEach((filename) => spawn('find', [filename, '-amin', '3', '-type', 'f', '-delete']))
-      }
-    }, 30 * 1000)
-  }
-}
-
-// Server si está activo
-if (opts['server']) (await import('./server.js')).default(global.conn, process.env.PORT || process.env.SERVER_PORT || 3000)
 
 // Función para limpiar tmp files
 function clearTmp() {
